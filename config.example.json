@@ -1,0 +1,23 @@
+{
+  "token": "YOUR_BOT_TOKEN_HERE",
+  "model": "small",
+  "language": "ja",
+  "loopback_device": null,
+  "mic_device": null,
+  "output_device": null,
+  "enable_loopback": true,
+  "enable_mic": true,
+  "identify_speakers": true,
+  "self_user_id": null,
+  "silence_sec": 0.5,
+  "max_buf_sec": 5.0,
+  "cpu_threads": null,
+  "workers": 2,
+  "cooldown_ms": 2500,
+  "ignore_phrases": [],
+  "mappings": [
+    { "keywords": ["草", "くさ"], "file": "sounds/kusa.wav", "volume": 1.0 },
+    { "keywords": ["おめでとう"], "file": "sounds/fanfare.wav", "volume": 1.0 },
+    { "keywords": ["爆発"], "file": "sounds/explosion.wav", "volume": 0.5 }
+  ]
+}

@@ -1,0 +1,17 @@
+# 音声認識
+faster-whisper>=1.2
+
+# 音声処理・入出力
+numpy
+scipy
+sounddevice
+soundfile
+PyAudioWPatch        # WASAPI ループバック録音 (Windows 専用)
+
+# Discord bot（meme_bot.py のみ必要。detector.py だけ使うなら不要）
+py-cord==2.8.0       # 2.8.0 の内部実装（Sink/SpeakingTimer）に依存しているため固定
+davey                # DAVE(E2EE) 対応。無いとボイス接続が close code 4017 で切断される
+PyNaCl
+
+# ほかに ffmpeg のインストールが必要（bot の効果音再生に使用）
+# https://ffmpeg.org/download.html からダウンロードして PATH を通す

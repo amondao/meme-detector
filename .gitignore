@@ -1,0 +1,13 @@
+# 秘密情報: Bot トークンを含むためコミット禁止
+# （config.example.json をコピーして各自作成する）
+config.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 効果音の音源（権利関係が不明なものを公開リポジトリに含めない）
+# 自作音源などを含めたい場合はこの行を削除する
+sounds/*.mp3
