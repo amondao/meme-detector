@@ -62,7 +62,8 @@ def load_config() -> dict:
     cfg.setdefault("mic_device", None)       # 自分の声（null=既定のマイク）
     cfg.setdefault("enable_mic", True)       # 自分の声を認識するか
     cfg.setdefault("enable_loopback", True)  # 相手の声を認識するか
-    cfg.setdefault("identify_speakers", True)  # 個別の話者名で字幕を出すか
+    cfg.setdefault("identify_speakers", True)  # 個別の話者で字幕を出すか
+    cfg.setdefault("anonymize_names", True)  # 実名でなく匿名通称（太郎/次郎…）で表示
     cfg.setdefault("self_user_id", None)     # 自分のDiscordユーザーID（相手の誤割当防止用・任意）
     return cfg
 
@@ -83,6 +84,11 @@ class Task:
 # 発話状態トラッカー（誰がいつ喋っていたかを記録）
 # ================================================================
 
+# 話者の匿名通称（実名を出さないための置き換え。登場順に割り当てる）
+SPEAKER_ALIASES = ["太郎", "次郎", "三郎", "四郎", "五郎",
+                   "六郎", "七郎", "八郎", "九郎", "十郎"]
+
+
 class SpeakingTracker:
     """
     SpeakingSink（パケット到着ベースの発話検出）から
@@ -91,20 +97,34 @@ class SpeakingTracker:
     bot は音声を復号できない(DAVE)が、発話タイミングは取得できるため、
     ループバックで拾った実音声の時間窓に重なる話者を特定できる。
 
-    lead   : パケット到着がループバック再生より先行する分の時間補正
-    margin : タイミングの揺らぎを吸収する余白
-    exclude: 割当から除外する uid（本人・bot。ループバックに本人の声は
-             入らないため、本人の相槌が他人の発話を奪うのを防ぐ）
+    lead     : パケット到着がループバック再生より先行する分の時間補正
+    margin   : タイミングの揺らぎを吸収する余白
+    exclude  : 割当から除外する uid（本人・bot。ループバックに本人の声は
+               入らないため、本人の相槌が他人の発話を奪うのを防ぐ）
+    anonymize: True なら実名でなく匿名通称（太郎/次郎…）で表示する
     """
     def __init__(self, margin: float = 0.4, lead: float = 0.15,
-                 exclude: set[int] | None = None):
+                 exclude: set[int] | None = None, anonymize: bool = True):
         self._lock = threading.Lock()
         self._active: dict[int, float] = {}          # uid -> 発話開始(monotonic)
         self._intervals: deque = deque(maxlen=400)   # (uid, start, end)
         self._names: dict[int, str] = {}
+        self._aliases: dict[int, str] = {}           # uid -> 匿名通称
         self.margin = margin
         self.lead = lead
         self.exclude = exclude or set()
+        self.anonymize = anonymize
+
+    def _label_for(self, uid: int) -> str:
+        """uid を表示用ラベルに変換（匿名時は登場順の通称を割り当て）。要ロック保持。"""
+        if not self.anonymize:
+            return self._names.get(uid, f"User{uid}")
+        alias = self._aliases.get(uid)
+        if alias is None:
+            n = len(self._aliases)
+            alias = SPEAKER_ALIASES[n] if n < len(SPEAKER_ALIASES) else f"話者{n + 1}"
+            self._aliases[uid] = alias
+        return alias
 
     def update(self, uid: int, name: str | None, speaking: bool):
         now = time.monotonic()
@@ -151,7 +171,7 @@ class SpeakingTracker:
             total = sum(overlap.values())
             if best < 0.1 or best / total < 0.55:
                 return None
-            return self._names.get(uid)
+            return self._label_for(uid)
 
 
 # ================================================================
@@ -552,7 +572,8 @@ async def on_ready():
             exclude.add(int(cfg["self_user_id"]))
         except (TypeError, ValueError):
             pass
-    _speaking = SpeakingTracker(exclude=exclude)
+    _speaking = SpeakingTracker(exclude=exclude,
+                                anonymize=cfg.get("anonymize_names", True))
     core.add_ignore_phrases(cfg.get("ignore_phrases", []))
     SOUNDS_DIR.mkdir(exist_ok=True)
     n_map = len(core.normalize_mappings(cfg))
