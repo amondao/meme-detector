@@ -66,6 +66,8 @@ HALLUCINATION_PHRASES = {
 DEFAULT_CONFIG = {
     "model": "small",
     "language": "ja",
+    "device": "auto",          # auto/cpu/cuda（GPUがあれば自動でcuda）
+    "compute_type": "auto",    # auto/int8/float16 等
     "loopback_device": None,   # null=自動選択（既定の再生デバイス）
     "output_device": None,     # 効果音の再生先（null=既定の出力）
     "cooldown_ms": 2500,       # 同じ効果音が連続で鳴るのを抑制するミリ秒
@@ -100,6 +102,28 @@ def save_config(cfg: dict) -> None:
     CONFIG_PATH.write_text(
         json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+
+
+def pick_device(cfg: dict) -> tuple[str, str]:
+    """
+    Whisper を動かすデバイスと計算精度を決める。
+    config の "device" / "compute_type" が "auto"（既定）なら、
+    GPU(CUDA) が使えれば cuda/float16、無ければ cpu/int8 を自動選択する。
+
+    GPU が使えると medium / large-v3 でも高速（CPU の数倍速）なので、
+    精度と速度を両立できる。
+    """
+    device = cfg.get("device", "auto")
+    compute = cfg.get("compute_type", "auto")
+    if device == "auto":
+        try:
+            import ctranslate2
+            device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+        except Exception:
+            device = "cpu"
+    if compute == "auto":
+        compute = "float16" if device == "cuda" else "int8"
+    return device, compute
 
 
 def normalize_mappings(cfg: dict) -> list[dict]:

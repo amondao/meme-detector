@@ -2,6 +2,8 @@
   "token": "YOUR_BOT_TOKEN_HERE",
   "model": "small",
   "language": "ja",
+  "device": "auto",
+  "compute_type": "auto",
   "loopback_device": null,
   "mic_device": null,
   "output_device": null,

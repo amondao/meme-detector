@@ -39,8 +39,8 @@ from core import (
     MIN_UTTERANCE_SEC, MAX_BUF_SEC, MAX_PENDING_TASKS, NUM_WORKERS,
     Gate, add_ignore_phrases, default_output_name, find_hit,
     find_loopback_devices, has_real_speech, is_hallucination_text,
-    load_config, normalize_mappings, rms, resample_to_16k, save_config,
-    to_mono_f32,
+    load_config, normalize_mappings, pick_device, rms, resample_to_16k,
+    save_config, to_mono_f32,
 )
 
 
@@ -352,13 +352,14 @@ def main():
     print(f"\nデバイス : {device['name']}")
     print(f"サンプルレート: {int(device['defaultSampleRate'])} Hz  チャンネル: {int(device['maxInputChannels'])}")
 
-    # モデル読み込み
+    # モデル読み込み（GPUがあれば自動で使用）
     workers = int(cfg.get("workers", NUM_WORKERS))
-    print(f"Whisper モデル '{model_size}' を読み込み中...", flush=True)
+    device, compute = pick_device(cfg)
     cpu_threads = cfg.get("cpu_threads") or min(8, os.cpu_count() or 4)
-    model = WhisperModel(model_size, device="cpu", compute_type="int8",
+    print(f"Whisper モデル '{model_size}' を読み込み中（{device}/{compute}）...", flush=True)
+    model = WhisperModel(model_size, device=device, compute_type=compute,
                          cpu_threads=cpu_threads, num_workers=workers)
-    print(f"モデル読み込み完了（CPUスレッド: {cpu_threads} / 並列: {workers}）。", flush=True)
+    print(f"モデル読み込み完了（{device} / 並列: {workers}）。", flush=True)
 
     mappings = normalize_mappings(cfg)
     cooldown = cfg.get("cooldown_ms", 2500) / 1000.0

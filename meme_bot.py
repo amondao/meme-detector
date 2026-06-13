@@ -559,12 +559,13 @@ _speaking_sink = None
 async def on_ready():
     global _model, _play_q, _gate, _speaking
     print(f"\nBot ログイン: {bot.user}", flush=True)
-    print(f"Whisper モデル '{cfg['model']}' を読み込み中...", flush=True)
     cpu_threads = cfg.get("cpu_threads") or min(8, os.cpu_count() or 4)
     workers = int(cfg.get("workers", core.NUM_WORKERS))
-    _model = WhisperModel(cfg["model"], device="cpu", compute_type="int8",
+    device, compute = core.pick_device(cfg)
+    print(f"Whisper モデル '{cfg['model']}' を読み込み中（{device}/{compute}）...", flush=True)
+    _model = WhisperModel(cfg["model"], device=device, compute_type=compute,
                           cpu_threads=cpu_threads, num_workers=workers)
-    print(f"モデル読み込み完了（CPUスレッド: {cpu_threads} / 並列: {workers}）。", flush=True)
+    print(f"モデル読み込み完了（{device} / 並列: {workers}）。", flush=True)
     _play_q = asyncio.Queue()
     _gate = core.Gate()
     # 個別話者の特定用トラッカー（自分のIDは相手音声への誤割当を避けるため除外）

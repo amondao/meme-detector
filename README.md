@@ -53,6 +53,8 @@ meme-detector/
 
 2. [ffmpeg](https://ffmpeg.org/download.html) をインストールして PATH を通す（bot再生版のみ）
 
+   > NVIDIA GPU があれば自動で使われ、`medium`/`large-v3` でも高速・高精度です（`device: "auto"`）。CUDA/cuDNN ランタイムが必要な環境では別途用意してください。
+
 3. 設定ファイルを作成
 
    ```
@@ -99,6 +101,8 @@ python meme_bot.py
 | `token` | Bot Token（bot再生版のみ） | — |
 | `model` | Whisper モデル。tiny/base/small/medium/large-v3 | `small` |
 | `language` | 認識言語 | `ja` |
+| `device` | `auto`/`cpu`/`cuda`。auto は GPU があれば自動で使用 | `auto` |
+| `compute_type` | `auto`/`int8`/`float16` 等（auto: GPUなら float16, CPUなら int8） | `auto` |
 | `loopback_device` | 相手の声の録音元デバイスID（null=自動/選択） | `null` |
 | `mic_device` | 自分の声のマイクID（null=既定のマイク） | `null` |
 | `output_device` | 効果音の再生先（ローカル版のみ） | `null` |
@@ -143,16 +147,28 @@ python meme_bot.py
 
 精度（聞き取りの正確さ）と速度（反応の速さ）はトレードオフです。`config.json` で調整します。
 
+### GPU があるなら最優先（精度・速度を両立）
+
+`device: "auto"`（既定）なら **NVIDIA GPU を自動で使用**します。GPU だと大きいモデルでも非常に速いので、`model` を `medium` や `large-v3` にするのがおすすめ（精度が大きく上がり、かつ高速）。
+
+参考実測（RTX 4070 SUPER, beam=5, 3秒の音声）:
+
+| 構成 | 処理時間 |
+|---|---|
+| GPU `large-v3`（最高精度） | 約 240 ms |
+| GPU `medium` | 約 150 ms |
+| CPU `small` | 約 1400 ms |
+
+### CPU のみの場合（精度と速度のトレードオフ）
+
 | 重視するもの | 設定の目安 |
 |---|---|
-| **精度重視**（既定） | `beam_size: 5` / `silence_sec: 0.8` / `model: "small"`（さらに上げるなら `medium`） |
+| **精度重視** | `beam_size: 5` / `silence_sec: 0.8` / `model: "small"` |
 | **速度重視** | `beam_size: 1` / `silence_sec: 0.5` / `model: "base"` |
 
 - `beam_size`: Whisper の探索幅。`5`（高精度・既定）↔ `1`（最速）
 - `silence_sec`: 小さいと反応は速いが、発話が途中で切れて精度が落ちる
-- `model`: `tiny < base < small < medium`（右ほど高精度・低速）
-
-参考: 3秒の音声の処理時間目安（CPU, int8, beam=1）— small≈1.0秒 / base≈0.5秒 / tiny≈0.3秒（beam=5 はおおむね1.5〜2倍）
+- `model`: `tiny < base < small < medium < large-v3`（右ほど高精度・低速）
 
 ## トラブルシューティング
 
