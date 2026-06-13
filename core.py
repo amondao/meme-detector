@@ -68,7 +68,7 @@ DEFAULT_CONFIG = {
     "language": "ja",
     "loopback_device": None,   # null=自動選択（既定の再生デバイス）
     "output_device": None,     # 効果音の再生先（null=既定の出力）
-    "cooldown_ms": 2500,       # 同じ効果音の再発火を抑制するミリ秒
+    "cooldown_ms": 2500,       # 同じ効果音が連続で鳴るのを抑制するミリ秒
     "mappings": [
         {"keywords": ["草", "くさ"], "file": "sounds/kusa.wav", "volume": 1.0},
         {"keywords": ["おめでとう"], "file": "sounds/fanfare.wav", "volume": 1.0},
@@ -133,7 +133,7 @@ def find_hit(text: str, mappings: list[dict],
              last_fire: dict[str, float], cooldown_sec: float, now: float):
     """
     text にマッチする最初のマッピングを返す（クールダウン中のものはスキップ）。
-    戻り値: (file, volume) または None。発火時は last_fire を更新。
+    戻り値: (file, volume) または None。再生時は last_fire を更新。
     """
     for m in mappings:
         if any(kw in text for kw in m["keywords"]):
