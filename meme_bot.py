@@ -63,7 +63,7 @@ def load_config() -> dict:
     cfg.setdefault("enable_mic", True)       # 自分の声を認識するか
     cfg.setdefault("enable_loopback", True)  # 相手の声を認識するか
     cfg.setdefault("identify_speakers", True)  # 個別の話者で字幕を出すか
-    cfg.setdefault("anonymize_names", True)  # 実名でなく匿名通称（太郎/次郎…）で表示
+    cfg.setdefault("anonymize_names", False)  # True で匿名通称（太郎/次郎…）に置き換え
     cfg.setdefault("self_user_id", None)     # 自分のDiscordユーザーID（相手の誤割当防止用・任意）
     return cfg
 
@@ -104,7 +104,7 @@ class SpeakingTracker:
     anonymize: True なら実名でなく匿名通称（太郎/次郎…）で表示する
     """
     def __init__(self, margin: float = 0.4, lead: float = 0.15,
-                 exclude: set[int] | None = None, anonymize: bool = True):
+                 exclude: set[int] | None = None, anonymize: bool = False):
         self._lock = threading.Lock()
         self._active: dict[int, float] = {}          # uid -> 発話開始(monotonic)
         self._intervals: deque = deque(maxlen=400)   # (uid, start, end)
@@ -573,7 +573,7 @@ async def on_ready():
         except (TypeError, ValueError):
             pass
     _speaking = SpeakingTracker(exclude=exclude,
-                                anonymize=cfg.get("anonymize_names", True))
+                                anonymize=cfg.get("anonymize_names", False))
     core.add_ignore_phrases(cfg.get("ignore_phrases", []))
     SOUNDS_DIR.mkdir(exist_ok=True)
     n_map = len(core.normalize_mappings(cfg))

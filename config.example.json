@@ -8,7 +8,7 @@
   "enable_loopback": true,
   "enable_mic": true,
   "identify_speakers": true,
-  "anonymize_names": true,
+  "anonymize_names": false,
   "self_user_id": null,
   "silence_sec": 0.5,
   "max_buf_sec": 5.0,
