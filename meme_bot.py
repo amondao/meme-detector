@@ -225,13 +225,15 @@ class SpeakingSink(discord.sinks.Sink):
 class Transcriber:
     def __init__(self, model: WhisperModel, language: str, mappings: list[dict],
                  play_q: asyncio.Queue, loop: asyncio.AbstractEventLoop,
-                 cooldown_sec: float = 2.5, workers: int = core.NUM_WORKERS):
-        self.model    = model
-        self.language = language
-        self.mappings = mappings
-        self.cooldown = cooldown_sec
-        self.play_q   = play_q
-        self.loop     = loop
+                 cooldown_sec: float = 2.5, workers: int = core.NUM_WORKERS,
+                 beam_size: int = 5):
+        self.model     = model
+        self.language  = language
+        self.mappings  = mappings
+        self.cooldown  = cooldown_sec
+        self.beam_size = beam_size
+        self.play_q    = play_q
+        self.loop      = loop
         self._q: queue.Queue[Task] = queue.Queue()
         self._last_fire: dict[str, float] = {}
         self._fire_lock = threading.Lock()  # 並列ワーカー間で cooldown を保護
@@ -268,7 +270,7 @@ class Transcriber:
         segs, _ = self.model.transcribe(
             task.audio,
             language=self.language,
-            beam_size=1,
+            beam_size=self.beam_size,
             vad_filter=True,
             vad_parameters={"min_silence_duration_ms": 300},
             condition_on_previous_text=False,
@@ -612,7 +614,8 @@ async def cmd_join(ctx: commands.Context):
     mappings = core.normalize_mappings(cfg)
     cooldown = cfg.get("cooldown_ms", 2500) / 1000.0
     workers = int(cfg.get("workers", core.NUM_WORKERS))
-    _transcriber = Transcriber(_model, cfg["language"], mappings, _play_q, loop, cooldown, workers)
+    _transcriber = Transcriber(_model, cfg["language"], mappings, _play_q, loop, cooldown, workers,
+                               beam_size=int(cfg.get("beam_size", 5)))
     _capture = CaptureManager()
     tracker = _speaking if cfg.get("identify_speakers", True) else None
     if tracker is not None:

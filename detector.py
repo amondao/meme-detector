@@ -153,12 +153,14 @@ class SoundPlayer:
 class Transcriber:
     def __init__(self, model: WhisperModel, language: str,
                  mappings: list[dict], player: SoundPlayer,
-                 cooldown_sec: float = 2.5, workers: int = NUM_WORKERS):
-        self.model    = model
-        self.language = language
-        self.mappings = mappings
-        self.player   = player
-        self.cooldown = cooldown_sec
+                 cooldown_sec: float = 2.5, workers: int = NUM_WORKERS,
+                 beam_size: int = 5):
+        self.model     = model
+        self.language  = language
+        self.mappings  = mappings
+        self.player    = player
+        self.cooldown  = cooldown_sec
+        self.beam_size = beam_size
         self._q: queue.Queue[np.ndarray] = queue.Queue()
         self._last_fire: dict[str, float] = {}
         self._fire_lock = threading.Lock()  # 並列ワーカー間で cooldown を保護
@@ -196,7 +198,7 @@ class Transcriber:
         segs, _ = self.model.transcribe(
             audio,
             language=self.language,
-            beam_size=1,
+            beam_size=self.beam_size,
             vad_filter=True,
             vad_parameters={"min_silence_duration_ms": 300},
             condition_on_previous_text=False,
@@ -367,7 +369,8 @@ def main():
     # 起動（gate で効果音の自己ループを防止）
     gate        = Gate()
     player      = SoundPlayer(cfg.get("output_device"), gate)
-    transcriber = Transcriber(model, language, mappings, player, cooldown, workers)
+    transcriber = Transcriber(model, language, mappings, player, cooldown, workers,
+                              beam_size=int(cfg.get("beam_size", 5)))
     engine      = Engine(transcriber, device, gate,
                          silence_sec=cfg.get("silence_sec", SILENCE_SEC),
                          max_buf_sec=cfg.get("max_buf_sec", MAX_BUF_SEC))

@@ -69,6 +69,7 @@ DEFAULT_CONFIG = {
     "loopback_device": None,   # null=自動選択（既定の再生デバイス）
     "output_device": None,     # 効果音の再生先（null=既定の出力）
     "cooldown_ms": 2500,       # 同じ効果音が連続で鳴るのを抑制するミリ秒
+    "beam_size": 5,            # Whisper のビーム幅。大きいほど高精度・低速（1で最速）
     "mappings": [
         {"keywords": ["草", "くさ"], "file": "sounds/kusa.wav", "volume": 1.0},
         {"keywords": ["おめでとう"], "file": "sounds/fanfare.wav", "volume": 1.0},
